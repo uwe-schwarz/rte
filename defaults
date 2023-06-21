@@ -1,0 +1,8 @@
+# config url changes get saved on the next run, keep the old place available for some time
+config=user@hostname:/backup/config
+
+# run every x seconds
+interval=10800
+
+# run on battery power (macOS only for now)
+battery=no
