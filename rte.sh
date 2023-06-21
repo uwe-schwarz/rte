@@ -185,31 +185,52 @@ fi
 # no more updates, all base config is ok, redirects done. Starting execution
 
 # create temp file and download hostname-folder
-exec_dir="$(mktemp -d)"
+export EXEC_DIR="$(mktemp -d)"
+export DATA_DIR
 
-rsync -r "$config/$h" "$exec_dir"
-chmod +x "$exec_dir/$h/run"
+rsync -r "$config/$h" "$EXEC_DIR"
+chmod +x "$EXEC_DIR/$h/run"
 
 # run hostname/run command and keep time
 secstart="$(date +%s)"
 echo "starting: $h/run"
 
-# create $log as file for logging
+# create $log as file for logging and $result as file for notify results
 export log="$(mktemp)"
+export result="$(mktemp)"
+
 # run
-"$exec_dir/$h/run"
-result=$?
+"$EXEC_DIR/$h/run"
+exit_code=$?
 cat "$log"
 
+# notify
+
+# try to figure out if we should notify
+notify_run=0
+if [ "$notify_when" = "always" ]; then
+  notify_run=1
+elif [ "$notify_when" = "onerror" -a $exit_code -ne 0 ]; then
+  notify_run=1
+fi
+
+if [ -x "$notify" -a $notify_run -eq 1 ]; then
+  if [ -s "$result" ]; then
+    echo "notifying: $notify_arg $(head -n 1 "$result")"
+    "$notify" "$notify_arg" "$(head -n 1 "$result")"
+  else
+    echo "notifying: $notify_arg rte: run on $h completed with exit code $exit_code"
+    "$notify" "$notify_arg" "rte: run on $h completed with exit code $exit_code"
+  fi
+fi
+
 # remove temp files and directory
-rm -f "$log"
-rm -fr "$exec_dir"
+rm -f "$log" "$result"
+rm -fr "$EXEC_DIR"
 
 # conclude
 secstop="$(date +%s)"
-echo "completed: $h/run in $(($secstop-$secstart)) seconds, exit code $result"
-
-# TODO notify
+echo "completed: $h/run in $(($secstop-$secstart)) seconds, exit code $exit_code"
 
 # upload logs and exit
 rsync --quiet --timeout=10 "$logfile" "$config/logs/$h/$t.log"

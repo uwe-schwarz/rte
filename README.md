@@ -74,7 +74,24 @@ config=user@hostname:/backup/config
 interval=10800
 
 # run on battery power (macOS only for now)
+# battery=no means it *doesn't* run on battery power
 battery=no
+
+# notify script
+# there is no mechanic to update this to something else.
+# you can use the executed script to place another script somewhere, even in
+# $DATA_DIR (it's available inside the script).
+notify=$DATA_DIR/rte/notify.sh
+
+# notify_arg is the first argument for the notify-script, this can include `$h`
+# for the hostname.
+notify_arg=topic_$h
+
+# notify_when has this possible values:
+# never = never notify, this is the default
+# onerror = notify if exit code is not zero
+# always = notify on every exit code
+notify_when=onerror
 ```
 
 Then there is an additional directory:
@@ -83,9 +100,12 @@ Then there is an additional directory:
 
 you can place anything inside, it gets downloaded (on every run) to the client.
 The file `run` inside this directory gets executed. The current directory is
-set to the place of `run`, there is also a `$exec_dir` with the temp-directory
+set to the place of `run`, there is also a `$EXEC_DIR` with the temp-directory
 and `$log` where log output can be redirected. Stdout and stderr gets also
 logged.
+
+If you want to use notifications, you can populate the file `$result`, the
+first line gets send to the notify script as second argument.
 
 ## log files
 
