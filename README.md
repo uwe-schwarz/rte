@@ -77,6 +77,9 @@ interval=10800
 # battery=no means it *doesn't* run on battery power
 battery=no
 
+# use caffeinate (only macOS) to prevent sleep
+caffeinate=yes
+
 # notify script
 # there is no mechanic to update this to something else.
 # you can use the executed script to place another script somewhere, even in

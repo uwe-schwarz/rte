@@ -200,8 +200,13 @@ export log="$(mktemp)"
 export result="$(mktemp)"
 
 # run
-"$EXEC_DIR/$h/run"
-exit_code=$?
+if [ "$caffeinate" = yes -a "$(uname)" = Darwin ]; then
+  caffeinate "$EXEC_DIR/$h/run"
+  exit_code=$?
+else
+  "$EXEC_DIR/$h/run"
+  exit_code=$?
+fi
 cat "$log"
 
 # notify
