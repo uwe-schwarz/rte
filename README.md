@@ -103,8 +103,9 @@ Then there is an additional directory:
 
 you can place anything inside, it gets downloaded (on every run) to the client.
 The file `run` inside this directory gets executed. The current directory is
-set to the place of `run`, there is also a `$EXEC_DIR` with the temp-directory
-and `$log` where log output can be redirected. Stdout and stderr gets also
+set to the place of `run`, there is also a `$EXEC_DIR` with the temp-directory,
+`$EXEC_DIR/$h` is the directory in which `run` is located. `$log` is a
+(temp-)file where log output can be redirected. Stdout and stderr gets also
 logged.
 
 If you want to use notifications, you can populate the file `$result`, the

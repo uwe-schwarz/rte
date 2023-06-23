@@ -143,7 +143,7 @@ if [ "$battery" == "no" ]; then
 fi
 
 # hostname, only till first "."
-h="$(hostname | cut -d. -f1)"
+export h="$(hostname | cut -d. -f1)"
 
 # start time
 t="$(date -u +%F-%H.%M.%S)"
