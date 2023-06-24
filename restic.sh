@@ -53,7 +53,7 @@ while IFS="," read repo path exclude_file sftp_command; do
     "$(if [ -n "$sftp_command" ]; then echo "-osftp.command=$sftp_command"; fi)" >/dev/null 2>/dev/null
 
   if [ $? -ne 0 ]; then
-    "$repo doesn't exist yet, try to initialize it"
+    echo "$repo doesn't exist yet, try to initialize it"
 
     # try init
     restic init \
