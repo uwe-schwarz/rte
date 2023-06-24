@@ -11,11 +11,14 @@ battery=no
 # there is no mechanic to update this to something else.
 # you can use the executed script to place another script somewhere, even in
 # $DATA_DIR (it's available inside the script).
-notify=$DATA_DIR/rte/notify.sh
+notify="$DATA_DIR/rte/notify.sh"
 
 # notify_arg is the first argument for the notify-script, this can include `$h`
 # for the hostname.
-notify_arg=topic_$h
+notify_arg="topic_$h"
+
+# notify_prefix gets send to notify-script before the result from the script
+notify_prefix="rte $h:"
 
 # notify_when has this possible values:
 # never = never notify, this is the default

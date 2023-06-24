@@ -191,24 +191,33 @@ fi
 export EXEC_DIR="$(mktemp -d)"
 export DATA_DIR
 
-rsync -r "$config/$h" "$EXEC_DIR"
-chmod +x "$EXEC_DIR/$h/run"
-
-# run hostname/run command and keep time
-secstart="$(date +%s)"
-echo "starting: $h/run"
+rsync -r "$config/$h/" "$EXEC_DIR"
 
 # create $log as file for logging and $result as file for notify results
 export log="$(mktemp)"
 export result="$(mktemp)"
 
-# run
-if [ "$caffeinate" = yes -a "$(uname)" = Darwin ]; then
-  caffeinate "$EXEC_DIR/$h/run"
-  exit_code=$?
+# keep track of time
+secstart="$(date +%s)"
+
+# exec run if it exists, else run default script
+if [ -f "$EXEC_DIR/run" ]; then
+  chmod +x "$EXEC_DIR/run"
+
+  # run hostname/run command and keep time
+  echo "starting run"
+
+  # run
+  if [ "$caffeinate" = yes -a "$(uname)" = Darwin ]; then
+    caffeinate "$EXEC_DIR/run"
+    exit_code=$?
+  else
+    "$EXEC_DIR/run"
+    exit_code=$?
+  fi
 else
-  "$EXEC_DIR/$h/run"
-  exit_code=$?
+  # no run script, so start default script
+  echo "$h/run not found, giving up."
 fi
 cat "$log"
 
@@ -224,11 +233,11 @@ fi
 
 if [ -x "$notify" -a $notify_run -eq 1 ]; then
   if [ -s "$result" ]; then
-    echo "notifying: $notify_arg $(head -n 1 "$result")"
-    "$notify" "$notify_arg" "$(head -n 1 "$result")"
+    echo "notify $notify_arg ${notify_prefix}${notify_prefix:+ }$(head -n 1 "$result")"
+    "$notify" "$notify_arg" "${notify_prefix}${notify_prefix:+ }$(head -n 1 "$result")"
   else
-    echo "notifying: $notify_arg rte: run on $h completed with exit code $exit_code"
-    "$notify" "$notify_arg" "rte: run on $h completed with exit code $exit_code"
+    echo "notify $notify_arg ${notify_prefix}${notify_prefix:+ }rte run on $h completed with exit code $exit_code"
+    "$notify" "$notify_arg" "${notify_prefix}${notify_prefix:+ }rte run on $h completed with exit code $exit_code"
   fi
 fi
 
@@ -238,7 +247,7 @@ rm -fr "$EXEC_DIR"
 
 # conclude
 secstop="$(date +%s)"
-echo "completed: $h/run in $(($secstop-$secstart)) seconds, exit code $exit_code"
+echo "completed in $(($secstop-$secstart)) seconds, exit code $exit_code"
 
 # upload logs and exit
 rsync --quiet --timeout=10 "$logfile" "$config/logs/$h/$t.log"
