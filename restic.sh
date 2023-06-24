@@ -39,6 +39,8 @@ fi
 while IFS="," read repo path exclude_file sftp_command; do
   if [ -f "$EXEC_DIR/$exclude_file" ]; then
     exclude_file="$EXEC_DIR/$exclude_file"
+  else
+    exclude_file=""
   fi
   sftp_command="$(eval echo $sftp_command)"
 
@@ -72,7 +74,8 @@ while IFS="," read repo path exclude_file sftp_command; do
     -r "$repo" \
     --verbose=2 \
     --password-file "$EXEC_DIR/RESTIC_PASSWORD" \
-    "$(if [ -n "$sftp_command" ]; then echo "-osftp.command=$sftp_command"; fi)" | \
+    -osftp.command="$sftp_command" \
+    --exclude-file="$exclude_file" | \
       grep --line-buffered -v "^unchanged"
 
   # and something went wrong
