@@ -83,6 +83,8 @@ EOF
       echo "operating system is macOS, using a fake application and launchd timer"
       mkdir -p ~/Applications
       osacompile -o ~/Applications/rte.app -e 'do shell script "'"$DATA_DIR"'/rte/rte.sh"'
+      mv ~/Applications/rte.app/Contents/Info.plist ~/Applications/rte.app/Contents/Info.plist.bak
+      awk '/^<\/dict>/{print "<key>LSUIElement</key>"; print "<string>1</string>"}1' ~/Applications/rte.app/Contents/Info.plist.bak > ~/Applications/rte.app/Contents/Info.plist
       open -g -j -a ~/Applications/rte.app --args fda
       echo "give full disk access or the needed rights to ~/Applications/rte.app/Contents/MacOS/applet."
       echo "it's probably best to give fda rights, otherwise the errors will get fuzzy do debug later."
