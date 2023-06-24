@@ -40,7 +40,7 @@ while IFS="," read repo path exclude_file sftp_command; do
   if [ -f "$EXEC_DIR/$exclude_file" ]; then
     exclude_file="$EXEC_DIR/$exclude_file"
   else
-    exclude_file=""
+    exclude_file="/dev/null"
   fi
   sftp_command="$(eval echo $sftp_command)"
 
