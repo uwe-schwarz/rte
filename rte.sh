@@ -142,7 +142,9 @@ source "$CONFIG_DIR/defaults"
 
 # check for battery power
 if [ "$battery" == "no" ]; then
-  pmset -g ps | grep -q "AC" || exit 0
+  if command -v pmset >/dev/null 2>/dev/null; then
+    pmset -g ps | grep -q "AC" || exit 0
+  fi
 fi
 
 # hostname, only till first "."
