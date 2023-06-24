@@ -82,7 +82,7 @@ while IFS="," read repo path exclude_file sftp_command; do
   fi
 done < <(grep "^[^#]" "$EXEC_DIR/RESTIC_TARGETS" | sed 's/^ *//;s/ *,/,/g;s/, */,/g;s/ *$//')
 
-if [ -f "$1" -a $error_code -ne 0 ]; then
+if [ -f "$1" -a $exit_code -ne 0 ]; then
   echo "${errlog:1}" > "$1"
 fi
 # all done, exit with $exit_code (1 on error)
