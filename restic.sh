@@ -30,7 +30,8 @@ exit_code=0
 
 # targets and password file need to exist
 if [ ! -f "$EXEC_DIR/RESTIC_TARGETS" -o ! -f "$EXEC_DIR/RESTIC_PASSWORD" ]; then
-  echo "restic: coulnd't find targets or password file" | tee "$errlog"
+  echo "restic: coulnd't find targets or password file"
+  echo "restic: coulnd't find targets or password file" > "$errlog"
   exit 2
 fi
 
