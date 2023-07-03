@@ -67,7 +67,7 @@ while IFS="," read repo path exclude_file sftp_command; do
   fi
 
   # check if repo exists
-  restic cat config \
+  $sudo restic cat config \
     -r "$repo" \
     --password-file "$EXEC_DIR/RESTIC_PASSWORD" \
     "$(if [ -n "$sftp_command" ]; then echo "-osftp.command=$sftp_command"; fi)" >/dev/null 2>/dev/null
@@ -76,7 +76,7 @@ while IFS="," read repo path exclude_file sftp_command; do
     echo "$repo doesn't exist yet, try to initialize it"
 
     # try init
-    restic init \
+    $sudo restic init \
       -r "$repo" \
       --password-file "$EXEC_DIR/RESTIC_PASSWORD" \
       "$(if [ -n "$sftp_command" ]; then echo "-osftp.command=$sftp_command"; fi)"
