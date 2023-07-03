@@ -28,6 +28,9 @@
 # exit code is 0 on success, 2 if target/password not found, 1 on any other (restic) error
 # if $1 exist it gets filled with a line containing path→repo pairs with errors, seperated by |   
 
+# try updating restic, don't do anything if it's not working
+restic self-update >/dev/null 2>/dev/null
+
 errlog=""
 exit_code=0
 
