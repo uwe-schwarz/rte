@@ -31,6 +31,11 @@
 # try updating restic, don't do anything if it's not working
 restic self-update >/dev/null 2>/dev/null
 
+# if there is a rclone.conf in $EXEC_DIR and RCLONE_CONFIG is not set, just use it
+if [ -f "$EXEC_DIR/rclone.conf" -a -z "$RCLONE_CONFIG" ]; then
+  export RCLONE_CONFIG="$EXEC_DIR/rclone.conf"
+fi
+
 errlog=""
 exit_code=0
 
