@@ -17,6 +17,9 @@
 #     sftp:hostname:/backup/user-home,/home/user,,
 #     # backup with exclusions and sftp-command
 #     sftp:hostname:/backup/user-config,/home/user/.config,exclude-user-config,ssh -F $EXEC_DIR/ssh-config -s hostname sftp
+#     # backup as root (add sudo: before repo name)
+#     sudo:rclone:host:etc,/etc,,
+#     #   (sudo must be possible)
 #
 #   Lines starting with # are ignored.
 #   Don't include any special chars.
@@ -47,6 +50,14 @@ while IFS="," read repo path exclude_file sftp_command; do
 
   echo "backing up $path → $repo"
 
+  # run as root?
+  if [ "${repo:0:5}" = "sudo:" ]; then
+    repo="${repo:5}"
+    sudo="sudo -E"
+  else
+    unset sudo
+  fi
+
   # check if repo exists
   restic cat config \
     -r "$repo" \
@@ -71,7 +82,7 @@ while IFS="," read repo path exclude_file sftp_command; do
   fi
 
   # ok, looks like a backup is due
-  restic backup "$path" \
+  $sudo restic backup "$path" \
     -r "$repo" \
     --verbose=2 \
     --password-file "$EXEC_DIR/RESTIC_PASSWORD" \
