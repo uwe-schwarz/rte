@@ -73,19 +73,33 @@ while IFS="," read repo path exclude_file sftp_command; do
     "$(if [ -n "$sftp_command" ]; then echo "-osftp.command=$sftp_command"; fi)" >/dev/null 2>/dev/null
 
   if [ $? -ne 0 ]; then
-    echo "$repo doesn't exist yet, try to initialize it"
-
-    # try init
-    $sudo restic init \
+    echo "$repo has some error, try unlocking"
+    $sudo restic unlock \
       -r "$repo" \
       --password-file "$EXEC_DIR/RESTIC_PASSWORD" \
       "$(if [ -n "$sftp_command" ]; then echo "-osftp.command=$sftp_command"; fi)"
 
+    # check again
+    $sudo restic cat config \
+      -r "$repo" \
+      --password-file "$EXEC_DIR/RESTIC_PASSWORD" \
+      "$(if [ -n "$sftp_command" ]; then echo "-osftp.command=$sftp_command"; fi)" >/dev/null 2>/dev/null
+
     if [ $? -ne 0 ]; then
-      echo "$repo couldn't be initialized, giving up"
-      errlog="$errlog|noinit $repo"
-      exit_code=1
-      continue
+      echo "$repo doesn't exist yet, try to initialize it"
+
+      # try init
+      $sudo restic init \
+        -r "$repo" \
+        --password-file "$EXEC_DIR/RESTIC_PASSWORD" \
+        "$(if [ -n "$sftp_command" ]; then echo "-osftp.command=$sftp_command"; fi)"
+
+      if [ $? -ne 0 ]; then
+        echo "$repo couldn't be initialized, giving up"
+        errlog="$errlog|noinit $repo"
+        exit_code=1
+        continue
+      fi
     fi
   fi
 
