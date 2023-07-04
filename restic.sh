@@ -11,7 +11,7 @@
 #   RESTIC_PASSWORD just includes a single line with the password to all repos
 #
 #   RESTIC_TARGETS has the following format:
-#     repo,path,exclude-file,sftp-command
+#     repo,path,exclude-file,sftp-command,path2,path3,…,path9
 #   examples:
 #     # backup of home dir without any exclusions or special sftp-command
 #     sftp:hostname:/backup/user-home,/home/user,,
@@ -19,7 +19,9 @@
 #     sftp:hostname:/backup/user-config,/home/user/.config,exclude-user-config,ssh -F $EXEC_DIR/ssh-config -s hostname sftp
 #     # backup as root (add sudo: before repo name)
 #     sudo:rclone:host:etc,/etc,,
-#     #   (sudo must be possible)
+#     #   (sudo must be possible without password)
+#     # multi-path
+#     rclone:host:home,/home/user,,/opt,/mnt
 #
 #   Lines starting with # are ignored.
 #   Don't include any special chars.
