@@ -58,7 +58,16 @@ while IFS="," read repo path exclude_file sftp_command path2 path3 path4 path5 p
   fi
   sftp_command="$(eval echo $sftp_command)"
 
-  echo "backing up $path → $repo"
+  echo -n "backing up $path"
+  if [ -s "$path2" ]; then echo -n ", $path2"; fi
+  if [ -s "$path3" ]; then echo -n ", $path3"; fi
+  if [ -s "$path4" ]; then echo -n ", $path4"; fi
+  if [ -s "$path5" ]; then echo -n ", $path5"; fi
+  if [ -s "$path6" ]; then echo -n ", $path6"; fi
+  if [ -s "$path7" ]; then echo -n ", $path7"; fi
+  if [ -s "$path8" ]; then echo -n ", $path8"; fi
+  if [ -s "$path9" ]; then echo -n ", $path9"; fi
+  echo " → $repo"
 
   # run as root?
   if [ "${repo:0:5}" = "sudo:" ]; then
