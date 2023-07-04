@@ -48,7 +48,7 @@ fi
 
 # files exist, error log is handled, let's start.
 
-while IFS="," read repo path exclude_file sftp_command; do
+while IFS="," read repo path exclude_file sftp_command path2 path3 path4 path5 path6 path7 path8 path9; do
   if [ -f "$EXEC_DIR/$exclude_file" ]; then
     exclude_file="$EXEC_DIR/$exclude_file"
   else
@@ -104,7 +104,7 @@ while IFS="," read repo path exclude_file sftp_command; do
   fi
 
   # ok, looks like a backup is due
-  $sudo restic backup "$path" \
+  $sudo restic backup "$path" "$path2" "$path3" "$path4" "$path5" "$path6" "$path7" "$path8" "$path9" \
     -r "$repo" \
     --verbose=2 \
     --password-file "$EXEC_DIR/RESTIC_PASSWORD" \
