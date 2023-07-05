@@ -245,10 +245,6 @@ if [ -x "$notify" -a $notify_run -eq 1 ]; then
   fi
 fi
 
-# remove temp files and directory
-rm -f "$log" "$result"
-rm -fr "$EXEC_DIR"
-
 # conclude
 secstop="$(date +%s)"
 echo "completed in $(($secstop-$secstart)) seconds, exit code $exit_code"
@@ -256,6 +252,7 @@ echo "completed in $(($secstop-$secstart)) seconds, exit code $exit_code"
 # upload logs and exit
 rsync --quiet --timeout=10 "$logfile" "$config/logs/$h/$t.log"
 
-# remove log
-rm -f "$logfile"
+# remove temp files and directory, and log file
+rm -f "$log" "$result" "$logfile"
+rm -fr "$EXEC_DIR"
 exit 0
