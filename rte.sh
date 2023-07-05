@@ -192,6 +192,7 @@ fi
 # create temp file and download hostname-folder
 export EXEC_DIR="$(mktemp -d)"
 export DATA_DIR
+export verbose
 
 rsync -r "$config/$h/" "$EXEC_DIR"
 
@@ -208,6 +209,7 @@ if [ -f "$EXEC_DIR/run" ]; then
 
   # run hostname/run command and keep time
   echo "starting run"
+  cd "$EXEC_DIR"
 
   # run
   if [ "$caffeinate" = yes -a "$(uname)" = Darwin ]; then
