@@ -80,6 +80,9 @@ battery=no
 # use caffeinate (only macOS) to prevent sleep
 caffeinate=yes
 
+# verbose-level (for restic.sh)
+verbose=2
+
 # notify script
 # there is no mechanic to update this to something else.
 # you can use the executed script to place another script somewhere, even in
