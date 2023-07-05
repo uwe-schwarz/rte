@@ -58,52 +58,51 @@ while IFS="," read repo path exclude_file sftp_command path2 path3 path4 path5 p
   fi
   sftp_command="$(eval echo $sftp_command)"
 
+  paths=("$path")
   echo -n "backing up $path"
-  if [ -s "$path2" ]; then echo -n ", $path2"; fi
-  if [ -s "$path3" ]; then echo -n ", $path3"; fi
-  if [ -s "$path4" ]; then echo -n ", $path4"; fi
-  if [ -s "$path5" ]; then echo -n ", $path5"; fi
-  if [ -s "$path6" ]; then echo -n ", $path6"; fi
-  if [ -s "$path7" ]; then echo -n ", $path7"; fi
-  if [ -s "$path8" ]; then echo -n ", $path8"; fi
-  if [ -s "$path9" ]; then echo -n ", $path9"; fi
+  if [ "$path2" ]; then echo -n ", $path2"; paths+=("$path2"); fi
+  if [ "$path3" ]; then echo -n ", $path3"; paths+=("$path3"); fi
+  if [ "$path4" ]; then echo -n ", $path4"; paths+=("$path4"); fi
+  if [ "$path5" ]; then echo -n ", $path5"; paths+=("$path5"); fi
+  if [ "$path6" ]; then echo -n ", $path6"; paths+=("$path6"); fi
+  if [ "$path7" ]; then echo -n ", $path7"; paths+=("$path7"); fi
+  if [ "$path8" ]; then echo -n ", $path8"; paths+=("$path8"); fi
+  if [ "$path9" ]; then echo -n ", $path9"; paths+=("$path9"); fi
   echo " → $repo"
 
   # run as root?
   if [ "${repo:0:5}" = "sudo:" ]; then
     repo="${repo:5}"
-    sudo="sudo -E"
+    sudo=("sudo" "-E")
   else
     unset sudo
   fi
 
+  # set arguments for restic
+  args=("-r" "$repo")
+  args+=("--password-file" "$EXEC_DIR/RESTIC_PASSWORD")
+  if [ "$sftp_command" ]; then
+    args+=("-osftp.command=$sftp_command")
+  fi
+
+  # verbose?
+  verbose="${verbose:-2}"
+
   # check if repo exists
-  $sudo restic cat config \
-    -r "$repo" \
-    --password-file "$EXEC_DIR/RESTIC_PASSWORD" \
-    "$(if [ -n "$sftp_command" ]; then echo "-osftp.command=$sftp_command"; fi)" >/dev/null 2>/dev/null
+  ${sudo[@]} restic cat config "${args[@]}" >/dev/null 2>/dev/null
 
   if [ $? -ne 0 ]; then
     echo "$repo has some error, try unlocking"
-    $sudo restic unlock \
-      -r "$repo" \
-      --password-file "$EXEC_DIR/RESTIC_PASSWORD" \
-      "$(if [ -n "$sftp_command" ]; then echo "-osftp.command=$sftp_command"; fi)"
+    ${sudo[@]} restic unlock "${args[@]}"
 
     # check again
-    $sudo restic cat config \
-      -r "$repo" \
-      --password-file "$EXEC_DIR/RESTIC_PASSWORD" \
-      "$(if [ -n "$sftp_command" ]; then echo "-osftp.command=$sftp_command"; fi)" >/dev/null 2>/dev/null
+    ${sudo[@]} restic cat config "${args[@]}" >/dev/null 2>/dev/null
 
     if [ $? -ne 0 ]; then
       echo "$repo doesn't exist yet, try to initialize it"
 
       # try init
-      $sudo restic init \
-        -r "$repo" \
-        --password-file "$EXEC_DIR/RESTIC_PASSWORD" \
-        "$(if [ -n "$sftp_command" ]; then echo "-osftp.command=$sftp_command"; fi)"
+      ${sudo[@]} restic init "${args[@]}"
 
       if [ $? -ne 0 ]; then
         echo "$repo couldn't be initialized, giving up"
@@ -115,12 +114,9 @@ while IFS="," read repo path exclude_file sftp_command path2 path3 path4 path5 p
   fi
 
   # ok, looks like a backup is due
-  $sudo restic backup "$path" "$path2" "$path3" "$path4" "$path5" "$path6" "$path7" "$path8" "$path9" \
-    -r "$repo" \
-    --verbose=2 \
-    --password-file "$EXEC_DIR/RESTIC_PASSWORD" \
-    -osftp.command="$sftp_command" \
-    --exclude-file="$exclude_file" | \
+  ${sudo[@]} restic backup "${paths[@]}" "${args[@]}" \
+    "--verbose=$verbose" \
+    "--exclude-file=$exclude_file" | \
       grep --line-buffered -v "^unchanged"
 
   # and something went wrong
