@@ -237,8 +237,8 @@ fi
 
 if [ -x "$notify" -a $notify_run -eq 1 ]; then
   if [ -s "$result" ]; then
-    echo "notify $notify_arg ${notify_prefix}${notify_prefix:+ }$(head -n 1 "$result")"
-    "$notify" "$notify_arg" "${notify_prefix}${notify_prefix:+ }$(head -n 1 "$result")"
+    echo "notify $notify_arg ${notify_prefix}${notify_prefix:+ }$(<"$result")"
+    "$notify" "$notify_arg" "${notify_prefix}${notify_prefix:+ }$(<"$result")"
   else
     echo "notify $notify_arg ${notify_prefix}${notify_prefix:+ }rte run on $h completed with exit code $exit_code"
     "$notify" "$notify_arg" "${notify_prefix}${notify_prefix:+ }rte run on $h completed with exit code $exit_code"

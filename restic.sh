@@ -44,7 +44,9 @@ exit_code=0
 # targets and password file need to exist
 if [ ! -f "$EXEC_DIR/RESTIC_TARGETS" -o ! -f "$EXEC_DIR/RESTIC_PASSWORD" ]; then
   echo "restic: coulnd't find targets or password file"
-  echo "restic: coulnd't find targets or password file" > "$errlog"
+  if [ -f "$1" ]; then
+    echo "restic: coulnd't find targets or password file" >> "$1"
+  fi
   exit 2
 fi
 
@@ -127,7 +129,7 @@ while IFS="," read repo path exclude_file sftp_command path2 path3 path4 path5 p
 done < <(grep "^[^#]" "$EXEC_DIR/RESTIC_TARGETS" | sed 's/^ *//;s/ *,/,/g;s/, */,/g;s/ *$//')
 
 if [ -f "$1" -a $exit_code -ne 0 ]; then
-  echo "${errlog:1}" > "$1"
+  echo "restic: ${errlog:1}" >> "$1"
 fi
 # all done, exit with $exit_code (1 on error)
 exit $exit_code
