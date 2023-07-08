@@ -23,6 +23,11 @@
 #     # multi-path
 #     rclone:host:home,/home/user,,/opt,/mnt
 #
+#   There can be these config options (anywhere in the file):
+#     # RESTIC: forget=--keep-hourly 8 --keep-daily 30 --keep-monthly 24 --keep-yearly 5 --group-by host
+#     → automatically forget and prune snapshots according to the policy
+#       (see https://restic.readthedocs.io/en/latest/060_forget.html)
+#
 #   Lines starting with # are ignored.
 #   Don't include any special chars.
 #   Variables get expanded via eval, so be careful.
@@ -49,6 +54,9 @@ if [ ! -f "$EXEC_DIR/RESTIC_TARGETS" -o ! -f "$EXEC_DIR/RESTIC_PASSWORD" ]; then
   fi
   exit 2
 fi
+
+# auto-forget?
+forget=($(awk '/RESTIC:\s*forget=/{sub(/^.*RESTIC:\s*forget=/,""); print}' RESTIC_TARGETS))
 
 # files exist, error log is handled, let's start.
 
@@ -125,6 +133,15 @@ while IFS="," read repo path exclude_file sftp_command path2 path3 path4 path5 p
   if [ $? -ne 0 ]; then
     errlog="$errlog|err $path → $repo"
     exit_code=1
+  fi
+
+  # forget?
+  if [ "${#forget[@]}" -ne 0 ]; then
+    ${sudo[@]} restic forget "${args[@]}" "${forget[@]}" --prune
+    if [ $? -ne 0 ]; then
+      errlog="$errlog|err forget: $repo"
+      exit_code=1
+    fi
   fi
 done < <(grep "^[^#]" "$EXEC_DIR/RESTIC_TARGETS" | sed 's/^ *//;s/ *,/,/g;s/, */,/g;s/ *$//')
 
