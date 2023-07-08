@@ -242,6 +242,8 @@ if [ -f "$EXEC_DIR/daily" ]; then
     # run daily
     "${coffee[@]}" "$EXEC_DIR/daily"
     daily_exit_code=$?
+  else
+    echo "daily already ran today"
   fi
 fi
 # get everything logged via file in the right place
@@ -256,6 +258,8 @@ if [ -f "$EXEC_DIR/weekly" ]; then
     # run daily
     "${coffee[@]}" "$EXEC_DIR/weekly"
     weekly_exit_code=$?
+  else
+    echo "weekly already ran this week"
   fi
 fi
 # get everything logged via file in the right place
