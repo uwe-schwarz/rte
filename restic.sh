@@ -56,7 +56,7 @@ if [ ! -f "$EXEC_DIR/RESTIC_TARGETS" -o ! -f "$EXEC_DIR/RESTIC_PASSWORD" ]; then
 fi
 
 # auto-forget?
-forget=($(awk '/RESTIC:\s*forget=/{sub(/^.*RESTIC:\s*forget=/,""); print}' RESTIC_TARGETS))
+forget=($(awk '/RESTIC:\s*forget=/{sub(/^.*RESTIC:\s*forget=/,""); print}' "$EXEC_DIR/RESTIC_TARGETS"))
 
 # files exist, error log is handled, let's start.
 
