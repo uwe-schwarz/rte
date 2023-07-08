@@ -35,6 +35,8 @@ My setup:
 /backup/config → directory with all the configs and logs
 /backup/config/logs/$hostname → output of backups, including stderr
 /backup/config/$hostname/run → script which gets executed
+/backup/config/$hostname/daily → script which gets executed once per day
+/backup/config/$hostname/weekly → script which gets executed once per week
 ```
 
 ## client
@@ -113,6 +115,8 @@ logged.
 
 If you want to use notifications, you can populate the file `$result`, the
 first line gets send to the notify script as second argument.
+
+Exactly the same applies to `daily` and `weekly`, those get run once per day/week.
 
 ## log files
 

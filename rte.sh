@@ -203,29 +203,66 @@ export result="$(mktemp)"
 # keep track of time
 secstart="$(date +%s)"
 
+# caffeinate
+if [ "$caffeinate" = yes -a "$(uname)" = Darwin ]; then
+  coffee=("caffeinate")
+else
+  unset coffee
+fi
+
+# init run
+cd "$EXEC_DIR"
+run_exit_code=0
+daily_exit_code=0
+weekly_exit_code=0
+
 # exec run if it exists, else run default script
 if [ -f "$EXEC_DIR/run" ]; then
   chmod +x "$EXEC_DIR/run"
 
   # run hostname/run command and keep time
   echo "starting run"
-  cd "$EXEC_DIR"
 
-  # run
-  if [ "$caffeinate" = yes -a "$(uname)" = Darwin ]; then
-    caffeinate "$EXEC_DIR/run"
-    exit_code=$?
-  else
-    "$EXEC_DIR/run"
-    exit_code=$?
-  fi
+  "${coffee[@]}" "$EXEC_DIR/run"
+  run_exit_code=$?
 else
   # no run script, so start default script
   echo "$h/run not found, giving up."
 fi
+# get everything logged via file in the right place
+cat "$log"
+
+# daily
+if [ -f "$EXEC_DIR/daily" ]; then
+  touch "$CONFIG_DIR/last-day"
+  if [ "$(date +%j)" != "$(< "$CONFIG_DIR/last-day")" ]; then
+    # update day
+    echo "this file: $CONFIG_DIR/last-day"
+    date +%j > "$CONFIG_DIR/last-day"
+    # run daily
+    "${coffee[@]}" "$EXEC_DIR/daily"
+    daily_exit_code=$?
+  fi
+fi
+# get everything logged via file in the right place
+cat "$log"
+
+# weekly
+if [ -f "$EXEC_DIR/weekly" ]; then
+  touch "$CONFIG_DIR/last-week"
+  if [ "$(date +%W)" != "$(< "$CONFIG_DIR/last-week")" ]; then
+    # update week
+    date +%W > "$CONFIG_DIR/last-week"
+    # run daily
+    "${coffee[@]}" "$EXEC_DIR/weekly"
+    weekly_exit_code=$?
+  fi
+fi
+# get everything logged via file in the right place
 cat "$log"
 
 # notify
+exit_code=$((run_exit_code+daily_exit_code+weekly_exit_code))
 
 # try to figure out if we should notify
 notify_run=0
@@ -237,11 +274,17 @@ fi
 
 if [ -x "$notify" -a $notify_run -eq 1 ]; then
   if [ -s "$result" ]; then
-    echo "notify $notify_arg ${notify_prefix}${notify_prefix:+ }$(<"$result")"
-    "$notify" "$notify_arg" "${notify_prefix}${notify_prefix:+ }$(<"$result")"
+    echo "notify $notify_arg ${notify_prefix}${notify_prefix:+ } \\"
+    pr -to 2 "$result"
+    echo "exit codes: run $run_exit_code, daily $daily_exit_code, weekly $weekly_exit_code"
+    "$notify" "$notify_arg" "${notify_prefix}${notify_prefix:+ }$(<"$result")"$'\n'"exit codes: run $run_exit_code, daily $daily_exit_code, weekly $weekly_exit_code"
   else
-    echo "notify $notify_arg ${notify_prefix}${notify_prefix:+ }rte run on $h completed with exit code $exit_code"
-    "$notify" "$notify_arg" "${notify_prefix}${notify_prefix:+ }rte run on $h completed with exit code $exit_code"
+    if [ "$run_exit_code" -ne 0 ]; then echo "run $run_exit_code" >> "$result"; fi
+    if [ "$daily_exit_code" -ne 0 ]; then echo "daily $daily_exit_code" >> "$result"; fi
+    if [ "$weekly_exit_code" -ne 0 ]; then echo "weekly $weekly_exit_code" >> "$result"; fi
+    echo "notify $notify_arg ${notify_prefix}${notify_prefix:+ }rte run on $h completed with exit codes:"
+    pr -to 2 "$result"
+    "$notify" "$notify_arg" "${notify_prefix}${notify_prefix:+ }rte run on $h completed with exit codes:"$'\n'"$(<"$result")"
   fi
 fi
 
