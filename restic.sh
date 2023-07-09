@@ -11,17 +11,17 @@
 #   RESTIC_PASSWORD just includes a single line with the password to all repos
 #
 #   RESTIC_TARGETS has the following format:
-#     repo,path,exclude-file,sftp-command,path2,path3,…,path9
+#     repo,exclude-file,path1,path2,path3,…,pathn
 #   examples:
-#     # backup of home dir without any exclusions or special sftp-command
-#     sftp:hostname:/backup/user-home,/home/user,,
-#     # backup with exclusions and sftp-command
-#     sftp:hostname:/backup/user-config,/home/user/.config,exclude-user-config,ssh -F $EXEC_DIR/ssh-config -s hostname sftp
+#     # backup of home dir without any exclusions
+#     rclone:host:backup/user-home,,/home/user
+#     # backup with exclusions
+#     rclone:host:backup/user-config,exclude-user-config,/home/user/.config
 #     # backup as root (add sudo: before repo name)
-#     sudo:rclone:host:etc,/etc,,
+#     sudo:rclone:host:etc,,/etc
 #     #   (sudo must be possible without password)
-#     # multi-path
-#     rclone:host:home,/home/user,,/opt,/mnt
+#     # multi-path, local repo
+#     /backup/home,exclude-home,/home/user,/opt,/mnt
 #
 #   There can be these config options (anywhere in the file):
 #     # RESTIC: forget=--keep-hourly 8 --keep-daily 30 --keep-monthly 24 --keep-yearly 5 --group-by host
@@ -60,30 +60,30 @@ forget=($(awk '/RESTIC:[[:space:]]*forget=/{sub(/^.*RESTIC:[[:space:]]*forget=/,
 
 # files exist, error log is handled, let's start.
 
-while IFS="," read repo path exclude_file sftp_command path2 path3 path4 path5 path6 path7 path8 path9; do
+while IFS="," read repo exclude_file path_all; do
   if [ -f "$EXEC_DIR/$exclude_file" ]; then
     exclude_file="$EXEC_DIR/$exclude_file"
   else
     exclude_file="/dev/null"
   fi
-  sftp_command="$(eval echo $sftp_command)"
 
-  paths=("$path")
-  echo -n "backing up $path"
-  if [ "$path2" ]; then echo -n ", $path2"; paths+=("$path2"); fi
-  if [ "$path3" ]; then echo -n ", $path3"; paths+=("$path3"); fi
-  if [ "$path4" ]; then echo -n ", $path4"; paths+=("$path4"); fi
-  if [ "$path5" ]; then echo -n ", $path5"; paths+=("$path5"); fi
-  if [ "$path6" ]; then echo -n ", $path6"; paths+=("$path6"); fi
-  if [ "$path7" ]; then echo -n ", $path7"; paths+=("$path7"); fi
-  if [ "$path8" ]; then echo -n ", $path8"; paths+=("$path8"); fi
-  if [ "$path9" ]; then echo -n ", $path9"; paths+=("$path9"); fi
-  echo " → $repo"
+  paths=()
+  while read path_element; do
+    paths+=("$path_element")
+  done < <(tr "," "\n" <<< "$path_all")
+  path_echo="$(printf ", %s" "${paths[@]}")"
+  path_echo="${path_echo:2}"
+  echo "backing up $path_echo → $repo"
 
   # run as root?
   if [ "${repo:0:5}" = "sudo:" ]; then
     repo="${repo:5}"
-    sudo=("sudo" "-E")
+    if command -v setcap >/dev/null 2>/dev/null; then
+      sudo setcap "CAP_DAC_READ_SEARCH+ep" "$(command -v restic)"
+      unset sudo
+    else
+      sudo=("sudo" "-E")
+    fi
   else
     unset sudo
   fi
@@ -91,9 +91,6 @@ while IFS="," read repo path exclude_file sftp_command path2 path3 path4 path5 p
   # set arguments for restic
   args=("-r" "$repo")
   args+=("--password-file" "$EXEC_DIR/RESTIC_PASSWORD")
-  if [ "$sftp_command" ]; then
-    args+=("-osftp.command=$sftp_command")
-  fi
 
   # verbose?
   verbose="${verbose:-2}"
@@ -131,7 +128,7 @@ while IFS="," read repo path exclude_file sftp_command path2 path3 path4 path5 p
 
   # and something went wrong
   if [ $? -ne 0 ]; then
-    errlog="$errlog|err $path → $repo"
+    errlog="$errlog|err $path_echo → $repo"
     exit_code=1
   fi
 
@@ -142,6 +139,11 @@ while IFS="," read repo path exclude_file sftp_command path2 path3 path4 path5 p
       errlog="$errlog|err forget: $repo"
       exit_code=1
     fi
+  fi
+
+  # remove capability
+  if command -v setcap >/dev/null 2>/dev/null; then
+    sudo setcap "CAP_DAC_READ_SEARCH-ep" "$(command -v restic)"
   fi
 done < <(grep "^[^#]" "$EXEC_DIR/RESTIC_TARGETS" | sed 's/^ *//;s/ *,/,/g;s/, */,/g;s/ *$//')
 
