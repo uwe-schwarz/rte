@@ -237,7 +237,6 @@ if [ -f "$EXEC_DIR/daily" ]; then
   touch "$CONFIG_DIR/last-day"
   if [ "$(date +%j)" != "$(< "$CONFIG_DIR/last-day")" ]; then
     # update day
-    echo "this file: $CONFIG_DIR/last-day"
     date +%j > "$CONFIG_DIR/last-day"
     # run daily
     "${coffee[@]}" "$EXEC_DIR/daily"
