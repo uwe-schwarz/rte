@@ -35,11 +35,13 @@
 # exit code is 0 on success, 2 if target/password not found, 1 on any other (restic) error
 # if $1 exist it gets filled with a line containing path→repo pairs with errors, seperated by |   
 
+result="$1"
+
 # try updating restic, don't do anything if it's not working
 restic self-update >/dev/null 2>/dev/null
 
 # if there is a rclone.conf in $EXEC_DIR and RCLONE_CONFIG is not set, just use it
-if [ -f "$EXEC_DIR/rclone.conf" -a -z "$RCLONE_CONFIG" ]; then
+if [ -f "$EXEC_DIR/rclone.conf" ] && [ -z "$RCLONE_CONFIG" ]; then
   export RCLONE_CONFIG="$EXEC_DIR/rclone.conf"
 fi
 
@@ -47,7 +49,7 @@ errlog=""
 exit_code=0
 
 # targets and password file need to exist
-if [ ! -f "$EXEC_DIR/RESTIC_TARGETS" -o ! -f "$EXEC_DIR/RESTIC_PASSWORD" ]; then
+if [ ! -f "$EXEC_DIR/RESTIC_TARGETS" ] || [ ! -f "$EXEC_DIR/RESTIC_PASSWORD" ]; then
   echo "restic: coulnd't find targets or password file"
   if [ -f "$1" ]; then
     echo "restic: coulnd't find targets or password file" >> "$1"
@@ -56,11 +58,11 @@ if [ ! -f "$EXEC_DIR/RESTIC_TARGETS" -o ! -f "$EXEC_DIR/RESTIC_PASSWORD" ]; then
 fi
 
 # auto-forget?
-forget=($(awk '/RESTIC:[[:space:]]*forget=/{sub(/^.*RESTIC:[[:space:]]*forget=/,""); print}' "$EXEC_DIR/RESTIC_TARGETS"))
+IFS=" " read -r -a forget <<< "$(awk '/RESTIC:[[:space:]]*forget=/{sub(/^.*RESTIC:[[:space:]]*forget=/,""); print}' "$EXEC_DIR/RESTIC_TARGETS")"
 
 # files exist, error log is handled, let's start.
 
-while IFS="," read repo exclude_file path_all; do
+while IFS="," read -r repo exclude_file path_all; do
   if [ -f "$EXEC_DIR/$exclude_file" ]; then
     exclude_file="$EXEC_DIR/$exclude_file"
   else
@@ -68,7 +70,7 @@ while IFS="," read repo exclude_file path_all; do
   fi
 
   paths=()
-  while read path_element; do
+  while read -r path_element; do
     paths+=("$path_element")
   done < <(tr "," "\n" <<< "$path_all")
   path_echo="$(printf ", %s" "${paths[@]}")"
@@ -96,22 +98,16 @@ while IFS="," read repo exclude_file path_all; do
   verbose="${verbose:-2}"
 
   # check if repo exists
-  ${sudo[@]} restic cat config "${args[@]}" >/dev/null 2>/dev/null
-
-  if [ $? -ne 0 ]; then
+  if ! "${sudo[@]}" restic cat config "${args[@]}" >/dev/null 2>/dev/null; then
     echo "$repo has some error, try unlocking"
-    ${sudo[@]} restic unlock "${args[@]}"
+    "${sudo[@]}" restic unlock "${args[@]}"
 
     # check again
-    ${sudo[@]} restic cat config "${args[@]}" >/dev/null 2>/dev/null
-
-    if [ $? -ne 0 ]; then
+    if ! "${sudo[@]}" restic cat config "${args[@]}" >/dev/null 2>/dev/null; then
       echo "$repo doesn't exist yet, try to initialize it"
 
       # try init
-      ${sudo[@]} restic init "${args[@]}"
-
-      if [ $? -ne 0 ]; then
+      if ! "${sudo[@]}" restic init "${args[@]}"; then
         echo "$repo couldn't be initialized, giving up"
         errlog="$errlog|noinit $repo"
         exit_code=1
@@ -121,21 +117,18 @@ while IFS="," read repo exclude_file path_all; do
   fi
 
   # ok, looks like a backup is due
-  ${sudo[@]} restic backup "${paths[@]}" "${args[@]}" \
+  if ! "${sudo[@]}" restic backup "${paths[@]}" "${args[@]}" \
     "--verbose=$verbose" \
     "--exclude-file=$exclude_file" | \
-      grep --line-buffered -v "^unchanged"
-
-  # and something went wrong
-  if [ $? -ne 0 ]; then
+      grep --line-buffered -v "^unchanged"; then
+    # and something went wrong
     errlog="$errlog|err $path_echo → $repo"
     exit_code=1
   fi
 
   # forget?
   if [ "${#forget[@]}" -ne 0 ]; then
-    ${sudo[@]} restic forget "${args[@]}" "${forget[@]}" --prune
-    if [ $? -ne 0 ]; then
+    if ! "${sudo[@]}" restic forget "${args[@]}" "${forget[@]}" --prune; then
       errlog="$errlog|err forget: $repo"
       exit_code=1
     fi
@@ -147,8 +140,8 @@ while IFS="," read repo exclude_file path_all; do
   fi
 done < <(grep "^[^#]" "$EXEC_DIR/RESTIC_TARGETS" | sed 's/^ *//;s/ *,/,/g;s/, */,/g;s/ *$//')
 
-if [ -f "$1" -a $exit_code -ne 0 ]; then
-  echo "restic: ${errlog:1}" >> "$1"
+if [ -f "$result" ] && [ $exit_code -ne 0 ]; then
+  echo "restic: ${errlog:1}" >> "$result"
 fi
 # all done, exit with $exit_code (1 on error)
 exit $exit_code
