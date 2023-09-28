@@ -124,6 +124,9 @@ while IFS="," read -r repo exclude_file path_all; do
     # and something went wrong
     errlog="$errlog|err $path_echo → $repo"
     exit_code=1
+  else
+    # everything ok, just unlock everything again to remove stale locks
+    "${sudo[@]}" restic unlock "${args[@]}"
   fi
 
   # forget?
