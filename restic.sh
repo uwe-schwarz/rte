@@ -117,13 +117,19 @@ while IFS="," read -r repo exclude_file path_all; do
   fi
 
   # ok, looks like a backup is due
-  if ! "${sudo[@]}" restic backup "${paths[@]}" "${args[@]}" \
+  "${sudo[@]}" restic backup "${paths[@]}" "${args[@]}" \
     "--verbose=$verbose" \
     "--exclude-file=$exclude_file" | \
-      grep --line-buffered -v "^unchanged"; then
+      grep --line-buffered -v "^unchanged"
+  if [ ${PIPESTATUS[0]} -ne 0 ]; then
     # and something went wrong
-    errlog="$errlog|err $path_echo → $repo"
-    exit_code=1
+    # first try rebuilding the index, maybe that helps
+    echo "some error occured during backup to $repo, trying to rebuild the index. no backup this time."
+    "${sudo[@]}" restic rebuild-index "${args[@]}"
+    if [ $? -ne 0 ]; then
+      errlog="$errlog|err $path_echo → $repo"
+      exit_code=1
+    fi
   else
     # everything ok, just unlock everything again to remove stale locks
     "${sudo[@]}" restic unlock "${args[@]}"
