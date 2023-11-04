@@ -125,11 +125,18 @@ while IFS="," read -r repo exclude_file path_all; do
     # and something went wrong
     # first try rebuilding the index, maybe that helps
     echo "some error occured during backup to $repo, trying to rebuild the index. no backup this time."
-    "${sudo[@]}" restic rebuild-index "${args[@]}"
-    if [ $? -ne 0 ]; then
-      errlog="$errlog|err $path_echo → $repo"
-      exit_code=1
+    # since ver 0.16 use repair index
+    if restic version | tr -d . | awk '{exit (160>$2)}'; then
+      "${sudo[@]}" restic repair index "${args[@]}"
+    else
+      "${sudo[@]}" restic rebuild-index "${args[@]}"
     fi
+    if [ $? -ne 0 ]; then
+      errlog="$errlog|err $path_echo → $repo (rebuilt index failed)"
+    else
+      errlog="$errlog|err $path_echo → $repo (rebuilt index succeded)"
+    fi
+    exit_code=1
   else
     # everything ok, just unlock everything again to remove stale locks
     "${sudo[@]}" restic unlock "${args[@]}"
