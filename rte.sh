@@ -156,8 +156,8 @@ source "$CONFIG_DIR/defaults"
 
 # check if gum log is available
 if gum -h | grep -q log; then
-  logger1=("tr" "\\n" "\\0")
-  logger2=("xargs" "-L1" "gum" "log" "-t" "rfc3339")
+  logger1=("tr" "\n" "\0")
+  logger2=("xargs" "-0" "-L1" "gum" "log" "-t" "rfc3339")
 else
   logger1=("cat")
   logger2=("cat")
