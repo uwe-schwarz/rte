@@ -120,16 +120,16 @@ while IFS="," read -r repo exclude_file path_all; do
   "${sudo[@]}" restic backup "${paths[@]}" "${args[@]}" \
     "--verbose=$verbose" \
     "--exclude-file=$exclude_file" | \
-      grep --line-buffered -v "^unchanged" | sed -u "s/^/$repo /"
+      grep --line-buffered -v "^unchanged" | sed -u "s|^|$repo |"
   if [ ${PIPESTATUS[0]} -ne 0 ]; then
     # and something went wrong
     # first try rebuilding the index, maybe that helps
     echo "some error occured during backup to $repo, trying to rebuild the index. no backup this time."
     # since ver 0.16 use repair index
     if restic version | tr -d . | awk '{exit (160>$2)}'; then
-      "${sudo[@]}" restic repair index "${args[@]}" | sed -u "s/^/$repo /"
+      "${sudo[@]}" restic repair index "${args[@]}" | sed -u "s|^|$repo |"
     else
-      "${sudo[@]}" restic rebuild-index "${args[@]}" | sed -u "s/^/$repo /"
+      "${sudo[@]}" restic rebuild-index "${args[@]}" | sed -u "s|^|$repo |"
     fi
     if [ ${PIPESTATUS[0]} -ne 0 ]; then
       errlog="$errlog|err $path_echo → $repo (rebuilt index failed)"
@@ -144,7 +144,7 @@ while IFS="," read -r repo exclude_file path_all; do
 
   # forget?
   if [ "${#forget[@]}" -ne 0 ]; then
-    "${sudo[@]}" restic forget "${args[@]}" "${forget[@]}" --prune | sed -u "s/^/$repo /"
+    "${sudo[@]}" restic forget "${args[@]}" "${forget[@]}" --prune | sed -u "s|^|$repo |"
     if [ ${PIPESTATUS[0]} -ne 0 ]; then
       errlog="$errlog|err forget: $repo"
       exit_code=1
