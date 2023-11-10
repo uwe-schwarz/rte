@@ -147,9 +147,19 @@ notify_arg=topic_$h
 notify_when=onerror
 notify_prefix="rte $h:"
 
+# if we need a timezone it should be UTC
+export TZ=C
+
 # read defaults
 cd "$CONFIG_DIR" || exit 1
 source "$CONFIG_DIR/defaults"
+
+# check if gum log is available
+if gum -h | grep -q log; then
+  logger=("xargs" "-L1" "gum" "log" "-t" "rfc3339")
+else
+  logger=("cat")
+fi
 
 # check for battery power
 if [ "$battery" == "no" ]; then
@@ -231,10 +241,10 @@ if [ -f "$EXEC_DIR/run" ]; then
   chmod +x "$EXEC_DIR/run"
 
   # run hostname/run command and keep time
-  echo "starting run"
+  echo "starting run" | "${logger[@]}"
 
-  "${coffee[@]}" "$EXEC_DIR/run"
-  run_exit_code=$?
+  "${coffee[@]}" "$EXEC_DIR/run" | "${logger[@]}"
+  run_exit_code=${PIPESTATUS[0]}
 else
   # no run script, so start default script
   echo "$h/run not found, giving up."
@@ -249,8 +259,8 @@ if [ -f "$EXEC_DIR/daily" ]; then
     # update day
     date +%j > "$CONFIG_DIR/last-day"
     # run daily
-    "${coffee[@]}" "$EXEC_DIR/daily"
-    daily_exit_code=$?
+    "${coffee[@]}" "$EXEC_DIR/daily" | "${logger[@]}"
+    daily_exit_code=${PIPESTATUS[0]}
   else
     echo "daily already ran today"
   fi
@@ -265,8 +275,8 @@ if [ -f "$EXEC_DIR/weekly" ]; then
     # update week
     date +%W > "$CONFIG_DIR/last-week"
     # run weekly
-    "${coffee[@]}" "$EXEC_DIR/weekly"
-    weekly_exit_code=$?
+    "${coffee[@]}" "$EXEC_DIR/weekly" | "${logger[@]}"
+    weekly_exit_code=${PIPESTATUS[0]}
   else
     echo "weekly already ran this week"
   fi
