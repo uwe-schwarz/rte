@@ -157,6 +157,10 @@ source "$CONFIG_DIR/defaults"
 # check if gum log is available
 if command -v ts >/dev/null; then
   logger=("ts" "%FT%H:%M:%.S")
+elif command -v /opt/homebrew/bin/ts >/dev/null; then
+  # set homebrew path
+  export PATH="/opt/homebrew/bin:$PATH"
+  logger=("/opt/homebrew/bin/ts" "%FT%H:%M:%.S")
 else
   logger=("cat")
 fi
