@@ -155,12 +155,10 @@ cd "$CONFIG_DIR" || exit 1
 source "$CONFIG_DIR/defaults"
 
 # check if gum log is available
-if gum -h | grep -q log; then
-  logger1=("tr" "\n" "\0")
-  logger2=("xargs" "-0" "-L1" "gum" "log" "-t" "rfc3339")
+if command -v ts >/dev/null; then
+  logger=("ts" "%FT%H:%M:%.S")
 else
-  logger1=("cat")
-  logger2=("cat")
+  logger=("cat")
 fi
 
 # check for battery power
@@ -243,16 +241,16 @@ if [ -f "$EXEC_DIR/run" ]; then
   chmod +x "$EXEC_DIR/run"
 
   # run hostname/run command and keep time
-  echo "starting run" | "${logger1[@]}" | "${logger2[@]}"
+  echo "starting run" | "${logger[@]}"
 
-  "${coffee[@]}" "$EXEC_DIR/run" | "${logger1[@]}" | "${logger2[@]}"
+  "${coffee[@]}" "$EXEC_DIR/run" | "${logger[@]}"
   run_exit_code=${PIPESTATUS[0]}
 else
   # no run script, so start default script
-  echo "$h/run not found, giving up."
+  echo "$h/run not found, giving up." | "${logger[@]}"
 fi
 # get everything logged via file in the right place
-cat "$log" | "${logger1[@]}" | "${logger2[@]}"
+cat "$log" | "${logger[@]}"
 
 # daily
 if [ -f "$EXEC_DIR/daily" ]; then
@@ -261,14 +259,14 @@ if [ -f "$EXEC_DIR/daily" ]; then
     # update day
     date +%j > "$CONFIG_DIR/last-day"
     # run daily
-    "${coffee[@]}" "$EXEC_DIR/daily" | "${logger1[@]}" | "${logger2[@]}"
+    "${coffee[@]}" "$EXEC_DIR/daily" | "${logger[@]}"
     daily_exit_code=${PIPESTATUS[0]}
   else
-    echo "daily already ran today" | "${logger1[@]}" | "${logger2[@]}"
+    echo "daily already ran today" | "${logger[@]}"
   fi
 fi
 # get everything logged via file in the right place
-cat "$log" | "${logger1[@]}" | "${logger2[@]}"
+cat "$log" | "${logger[@]}"
 
 # weekly
 if [ -f "$EXEC_DIR/weekly" ]; then
@@ -277,14 +275,14 @@ if [ -f "$EXEC_DIR/weekly" ]; then
     # update week
     date +%W > "$CONFIG_DIR/last-week"
     # run weekly
-    "${coffee[@]}" "$EXEC_DIR/weekly" | "${logger1[@]}" | "${logger2[@]}"
+    "${coffee[@]}" "$EXEC_DIR/weekly" | "${logger[@]}"
     weekly_exit_code=${PIPESTATUS[0]}
   else
-    echo "weekly already ran this week" | "${logger1[@]}" | "${logger2[@]}"
+    echo "weekly already ran this week" | "${logger[@]}"
   fi
 fi
 # get everything logged via file in the right place
-cat "$log" | "${logger1[@]}" | "${logger2[@]}"
+cat "$log" | "${logger[@]}"
 
 # notify
 exit_code=$((run_exit_code+daily_exit_code+weekly_exit_code))
@@ -299,23 +297,23 @@ fi
 
 if [ -x "$notify" ] && [ $notify_run -eq 1 ]; then
   if [ -s "$result" ]; then
-    echo "notify $notify_arg ${notify_prefix}${notify_prefix:+ } \\" | "${logger1[@]}" | "${logger2[@]}"
-    pr -to 2 "$result" | "${logger1[@]}" | "${logger2[@]}"
-    echo "exit codes: run $run_exit_code, daily $daily_exit_code, weekly $weekly_exit_code" | "${logger1[@]}" | "${logger2[@]}"
+    echo "notify $notify_arg ${notify_prefix}${notify_prefix:+ } \\" | "${logger[@]}"
+    pr -to 2 "$result" | "${logger[@]}"
+    echo "exit codes: run $run_exit_code, daily $daily_exit_code, weekly $weekly_exit_code" | "${logger[@]}"
     "$notify" "$notify_arg" "${notify_prefix}${notify_prefix:+ }$(<"$result")"$'\n'"exit codes: run $run_exit_code, daily $daily_exit_code, weekly $weekly_exit_code"
   else
     if [ "$run_exit_code" -ne 0 ]; then echo "run $run_exit_code" >> "$result"; fi
     if [ "$daily_exit_code" -ne 0 ]; then echo "daily $daily_exit_code" >> "$result"; fi
     if [ "$weekly_exit_code" -ne 0 ]; then echo "weekly $weekly_exit_code" >> "$result"; fi
-    echo "notify $notify_arg ${notify_prefix}${notify_prefix:+ }rte run on $h completed with exit codes:" | "${logger1[@]}" | "${logger2[@]}"
-    pr -to 2 "$result" | "${logger1[@]}" | "${logger2[@]}"
+    echo "notify $notify_arg ${notify_prefix}${notify_prefix:+ }rte run on $h completed with exit codes:" | "${logger[@]}"
+    pr -to 2 "$result" | "${logger[@]}"
     "$notify" "$notify_arg" "${notify_prefix}${notify_prefix:+ }rte run on $h completed with exit codes:"$'\n'"$(<"$result")"
   fi
 fi
 
 # conclude
 secstop="$(date +%s)"
-echo "completed in $((secstop-secstart)) seconds, exit code $exit_code" | "${logger1[@]}" | "${logger2[@]}"
+echo "completed in $((secstop-secstart)) seconds, exit code $exit_code" | "${logger[@]}"
 
 # upload logs and exit
 rsync --quiet --timeout=10 "$logfile" "$config/logs/$h/$t.log"
